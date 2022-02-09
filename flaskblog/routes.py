@@ -1,8 +1,10 @@
+import secrets
+import os
 from flask import render_template, url_for, flash, redirect, request
 from flask_login import login_user, current_user, logout_user, login_required
 from flaskblog import app, db
 from .models import User, Post
-from .forms import RegistrationForm, LoginForm
+from .forms import RegistrationForm, LoginForm, UpdateAccountForm
 
 posts = [
     {
@@ -42,7 +44,7 @@ def register():
 
     form = RegistrationForm()
     if form.validate_on_submit():
-        #hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        
 
         user = User(
             username= form.username.data,
@@ -60,7 +62,7 @@ def register():
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
-    if current_user.is_authenticated:
+    if current_user.is_authenticated: # using the user loader defined in models.py
         return redirect(url_for('home'))
 
     form = LoginForm()
@@ -85,7 +87,34 @@ def logout():
     return redirect(url_for('home'))
 
 
-@app.route('/account')
+def save_picture(form_picture):
+    random_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(form_picture.filename) # uploaded files have filename attribute. The unserscore is the filename(underscore since we won't use it)
+    picture_filename = random_hex + f_ext
+    picture_path = os.path.join(app.root_path, 'static/profile_pics', picture_filename)
+    form_picture.save(picture_path)
+    return picture_filename
+
+
+@app.route('/account', methods=['POST', 'GET'])
 @login_required
 def account():
-    return render_template('account.html')
+    image_file = url_for('static', filename='profile_pics/{}'.format(current_user.image_file))
+
+    form = UpdateAccountForm()
+    if form.validate_on_submit():
+        
+        if form.picture.data:
+            picture_file = save_picture(form.picture.data)
+            current_user.image_file = picture_file
+
+        current_user.username = form.username.data
+        current_user.email = form.email.data
+        db.session.commit()
+        flash('Your account has been updated', 'success')
+        return redirect(url_for('account')) # Because of post get redirect pattern (Prevent resubmission of data)
+    elif request.method == 'GET': #populate form with current user data
+        form.username.data = current_user.username
+        form.email.data = current_user.email
+
+    return render_template('account.html', image_file=image_file, form=form)

@@ -3,7 +3,7 @@ from flaskblog import db, bcrypt, login_manager
 from flask_login import UserMixin
 
 @login_manager.user_loader
-def load_user(user_id):
+def load_user(user_id): # loads the currend user using user id stored in session
     return User.query.get(int(user_id))
 
 class User(db.Model, UserMixin):
