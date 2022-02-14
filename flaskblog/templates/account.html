@@ -6,11 +6,13 @@
     <div class="media">
       <img class="rounded-circle account-img" src="{{image_file}}">
       <div class="media-body">
-        <h2 class="account-heading">{{current_user.username}}</h2>
-        <p class="text-secondary">{{current_user.email}}</p>
+        <h2 class="account-heading">{{user.username}}</h2>
+        <p class="text-secondary">{{user.email}}</p>
       </div>
     </div>
-    <div class="content-section">
+    
+
+        {% if current_user == user %}
         <form method="POST" action="" enctype="multipart/form-data">
             {{ form.hidden_tag() }} <!--For csrf token -->
             <fieldset class="'form-group">
@@ -54,6 +56,27 @@
                     {{ form.submit(class="btn btn-outline-info") }}
             </div>
         </form>
+        {% endif %}
+    
+    <div class="'ml-4">
+        <div>
+            <h1>{{user.username}} Posts</h1>
+        </div>
+        {% for post in posts %} <!-- .items because of pagation-->
+        <article class="media content-section">
+          <div>
+            <img src="{{ url_for('static', filename='profile_pics/' + post.author.image_file) }}" alt="profile-pic" class="rounded-circle article-img">
+          </div>
+          <div class="media-body">
+            <div class="article-metadata">
+              <a class="mr-2" href="#">{{ post.author.username }}</a>
+              <small class="text-muted">{{ post.date_posted.strftime('%Y-%m-%d') }}</small>
+            </div>
+            <h2><a class="article-title" href="{{ url_for('post', post_id=post.id) }}">{{ post.title }}</a></h2>
+            <p class="article-content">{{ post.content }}</p>
+          </div>
+        </article>
+        {% endfor %}
     </div>
   </div>
 

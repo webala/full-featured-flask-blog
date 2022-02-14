@@ -1,0 +1,82 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+    <article class="media content-section">
+      <div>
+        <img src="{{ url_for('static', filename='profile_pics/' + post.author.image_file) }}" alt="profile-pic" class="rounded-circle article-img">
+      </div>
+      {% if post.author == current_user %}
+      <form method="POST" action="">
+        {{ form.hidden_tag() }} <!--For csrf token -->
+        <fieldset class="'form-group">
+            <legend class="border-bottom mb-4">{{post.title}}</legend>
+
+            <div class="form-group">
+                {{ form.title.label(class="form-control-label") }}
+
+                <br/>
+                {% if form.title.errors %}
+                    {% for error in form.title.errors %}
+                    <span class="text-muted text-danger">{{ error }}</span>
+                    {% endfor %}
+                {% endif %}
+
+                {{ form.title(class="form-control form-control-lg") }}
+            </div>
+
+            <div class="form-group">
+                {{ form.content.label(class="form-control-label") }}
+
+                <br/>
+                {% if form.content.errors %}
+                    {% for error in form.content.errors %}
+                    <span class="text-muted text-danger">{{ error }}</span>
+                    {% endfor %}
+                {% endif %}
+
+                {{ form.content(class="form-control form-control-lg") }}
+            </div>
+        </fieldset>
+        <div class="form-group mt-4">
+                {{ form.submit(placeholder="Update", class="btn btn-outline-info") }}
+        </div>
+    </form>
+    <div>
+        <form action="{{ url_for('delete_post', post_id=post.id)}}" method="POST">
+            <input type="submit" class="btn btn-danger" value="Delete">
+        </form>   
+    </div>
+      {% else %}
+      <div class="media-body">
+        <div class="article-metadata">
+          <a class="mr-2" href="#">{{ post.author.username }}</a>
+          <small class="text-muted">{{ post.date_posted.strftime('%Y-%m-%d') }}</small>
+        </div>
+        <h2 class="article-title">{{ post.title }}</h2>
+        <p class="article-content">{{ post.content }}</p>
+      </div>
+      {% endif %}
+    </article>
+   <!-- Modal -->
+   <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+            <h3>modal</h3>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary">Save changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+{% endblock %}

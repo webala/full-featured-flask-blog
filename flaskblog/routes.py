@@ -1,35 +1,20 @@
 import secrets
 import os
-from flask import render_template, url_for, flash, redirect, request
+from turtle import pos
+from PIL import Image
+from flask import render_template, url_for, flash, redirect, request, abort
 from flask_login import login_user, current_user, logout_user, login_required
 from flaskblog import app, db
 from .models import User, Post
-from .forms import RegistrationForm, LoginForm, UpdateAccountForm
+from .forms import RegistrationForm, LoginForm, UpdateAccountForm, PostForm
 
-posts = [
-    {
-        'author': 'COrey Schafer',
-        'title': 'Blog post',
-        'content': 'First post content',
-        'date_posted': '1st August 2020'
-    },
-    {
-        'author': 'COrey Schafer',
-        'title': 'Blog post',
-        'content': 'First post content',
-        'date_posted': '1st August 2020'
-    },
-    {
-        'author': 'COrey Schafer',
-        'title': 'Blog post',
-        'content': 'First post content',
-        'date_posted': '1st August 2020'
-    }
-]
+
 
 @app.route('/')
 @app.route('/home')
 def home():
+    page = request.args.get('page', 1, type=int)
+    posts = Post.query.order_by(Post.date_posted.desc()).paginate(page=page, per_page=2)
     return render_template('home.html', posts=posts)
 
 @app.route('/about')
@@ -92,29 +77,80 @@ def save_picture(form_picture):
     _, f_ext = os.path.splitext(form_picture.filename) # uploaded files have filename attribute. The unserscore is the filename(underscore since we won't use it)
     picture_filename = random_hex + f_ext
     picture_path = os.path.join(app.root_path, 'static/profile_pics', picture_filename)
-    form_picture.save(picture_path)
+
+    #Resize the image
+    output_size = (125, 125)
+    i = Image.open(form_picture)
+    i.thumbnail(output_size)
+    i.save(picture_path)
     return picture_filename
 
 
-@app.route('/account', methods=['POST', 'GET'])
+@app.route('/account/<username>', methods=['POST', 'GET'])
 @login_required
-def account():
+def account(username):
     image_file = url_for('static', filename='profile_pics/{}'.format(current_user.image_file))
+    user = User.query.filter_by(username=username).first()
+    posts = Post.query.order_by(Post.date_posted.desc()).filter_by(author=user)
 
     form = UpdateAccountForm()
-    if form.validate_on_submit():
-        
+    if form.validate_on_submit() and user == current_user:
         if form.picture.data:
             picture_file = save_picture(form.picture.data)
             current_user.image_file = picture_file
-
         current_user.username = form.username.data
         current_user.email = form.email.data
         db.session.commit()
         flash('Your account has been updated', 'success')
         return redirect(url_for('account')) # Because of post get redirect pattern (Prevent resubmission of data)
+
     elif request.method == 'GET': #populate form with current user data
         form.username.data = current_user.username
         form.email.data = current_user.email
 
-    return render_template('account.html', image_file=image_file, form=form)
+    return render_template('account.html', image_file=image_file, form=form, posts=posts, user=user)
+
+@app.route('/post/new', methods=(['GET', 'POST']))
+@login_required
+def new_post():
+    form = PostForm()
+    if form.validate_on_submit():
+        post = Post(
+            title = form.title.data,
+            content = form.content.data,
+            author = current_user # The back reference can be used instead of the user id
+        )
+        db.session.add(post)
+        db.session.commit()
+        flash('Post created successfully', 'success')
+        return redirect(url_for('home'))
+    return render_template('create_post.html', form=form)
+
+@app.route('/post/<int:post_id>', methods=(['GET', 'POST']))
+@login_required
+def post(post_id):
+    post = Post.query.get_or_404(post_id)
+    form = PostForm ()
+    
+    if post.author == current_user and form.validate_on_submit():
+        post.title = form.title.data
+        post.content = form.content.data
+        db.session.commit()
+        flash('Post updated successfully', 'success')
+        return redirect(url_for('home'))
+    elif request.method == 'GET': # To avoid populating the form data on a post request
+        form.title.data = post.title
+        form.content.data = post.content
+
+    return render_template('post.html', post=post, form=form)
+
+@app.route('/post/<int:post_id>/delete', methods=(['POST']))
+@login_required
+def delete_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    if post.author != current_user:
+        abort(403)
+    db.session.delete(post)
+    db.session.commit()
+    flash('Your post has been deleted', 'success')
+    return redirect(url_for('home'))
