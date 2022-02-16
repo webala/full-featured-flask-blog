@@ -1,0 +1,30 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="content-section">
+    <form method="POST" action="">
+        {{ form.hidden_tag() }} <!--For csrf token -->
+        <fieldset class="'form-group">
+            <legend class="border-bottom mb-4">Resert Password</legend>
+
+            <div class="form-group">
+                {{ form.email.label(class="form-control-label") }}
+
+                <br/>
+                {% if form.email.errors %}
+                    {% for error in form.email.errors %}
+                    <span class="text-muted text-danger">{{ error }}</span>
+                    {% endfor %}
+                {% endif %}
+
+                {{ form.email(class="form-control form-control-lg") }}
+            </div>
+
+        </fieldset>
+        <div class="form-group mt-4">
+                {{ form.submit(class="btn btn-outline-info") }}
+        </div>
+    </form>
+</div>
+
+{% endblock %}

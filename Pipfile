@@ -10,6 +10,8 @@ flask-sqlalchemy = "*"
 flask-bcrypt = "*"
 flask-login = "*"
 pillow = "*"
+flask-mail = "*"
+python-dotenv = "*"
 
 [dev-packages]
 
