@@ -1,5 +1,5 @@
-from datetime import datetime
-from flaskblog import db, bcrypt, login_manager, app
+from flask import current_app
+from flaskblog import db, bcrypt, login_manager
 from flask_login import UserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 
@@ -26,12 +26,12 @@ class User(db.Model, UserMixin):
         return bcrypt.check_password_hash(self.password, password)
     
     def get_reset_token(self, expires_sec=1800):
-        s = Serializer(app.config['SECRET_KEY'], expires_sec) #initialize the serializer
+        s = Serializer(current_app.config['SECRET_KEY'], expires_sec) #initialize the serializer
         return s.dumps({'user_id': self.id}).decode('utf-8') # return generated reset token
     
     @staticmethod # telling python not to expect self as an argument. This method is bound to the class not the object
     def verify_reset_token(token):
-        s = Serializer(app.config['SECRET_KEY'])
+        s = Serializer(current_app.config['SECRET_KEY'])
 
         try:
             user_id = s.loads(token)['user_id']
@@ -39,14 +39,3 @@ class User(db.Model, UserMixin):
             return None
         
         return User.query.get(user_id)
-
-class Post(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(100), nullable=False)
-    date_posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    content = db.Column(db.Text, nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-
-    def __repr__(self):
-        return f"Post({self.title}, {self.date_posted})"
- 
